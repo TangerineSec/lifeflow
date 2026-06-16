@@ -8,6 +8,7 @@ import {
   X,
   FileText,
   MessageSquareText,
+  Trash2,
 } from 'lucide-react';
 import useFlowStore from '../../store/useFlowStore';
 import useAppStore from '../../store/useAppStore';
@@ -28,6 +29,7 @@ export default function FlowDetailView() {
   const openModal = useAppStore((s) => s.openModal);
   const flow = useFlowStore((s) => (viewingFlowId ? s.flows[viewingFlowId] : null));
   const updateFlow = useFlowStore((s) => s.updateFlow);
+  const removeFlow = useFlowStore((s) => s.removeFlow);
 
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -128,6 +130,19 @@ export default function FlowDetailView() {
             >
               简介
             </Button>
+            <button
+              onClick={() => {
+                if (window.confirm(`确定删除流程「${flow.title}」？此操作不可撤销。`)) {
+                  removeFlow(viewingFlowId);
+                  closeFlowView();
+                }
+              }}
+              className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all"
+              title="删除流程"
+            >
+              <Trash2 size={15} />
+            </button>
+            <div className="h-4 w-px bg-gray-200 mx-1" />
             <div className="text-xs text-gray-400 tabular-nums">
               {flow.nodes.length} 节点
             </div>

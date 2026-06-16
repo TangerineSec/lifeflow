@@ -6,6 +6,7 @@ import {
   FolderOpen,
   ChevronRight,
   Layers,
+  Trash2,
 } from 'lucide-react';
 import useFlowStore from '../../store/useFlowStore';
 import useAppStore from '../../store/useAppStore';
@@ -18,7 +19,7 @@ import Button from '../ui/Button';
  * - 支持在「具体日期」下挂载特定项目流程
  */
 export default function WorkSection() {
-  const { flows, addFlow } = useFlowStore();
+  const { flows, addFlow, removeFlow } = useFlowStore();
   const openFlowView = useAppStore((s) => s.openFlowView);
 
   // 过滤出工作区的 flow
@@ -134,10 +135,24 @@ export default function WorkSection() {
                         )}
                       </div>
                     </div>
-                    <ChevronRight
-                      size={16}
-                      className="text-gray-200 group-hover:text-gray-400 transition-colors flex-shrink-0"
-                    />
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`确定删除「${flow.title}」？`)) {
+                            removeFlow(flow.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50
+                                   opacity-0 group-hover:opacity-100 transition-all"
+                        title="删除流程"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <ChevronRight
+                        size={16}
+                        className="text-gray-200 group-hover:text-gray-400 transition-colors flex-shrink-0"
+                      />
+                    </div>
                   </div>
                 </div>
               </motion.div>
