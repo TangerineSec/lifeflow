@@ -27,6 +27,7 @@ export default function FlowDetailView() {
   const viewingFlowId = useAppStore((s) => s.viewingFlowId);
   const closeFlowView = useAppStore((s) => s.closeFlowView);
   const openModal = useAppStore((s) => s.openModal);
+  const showConfirmDialog = useAppStore((s) => s.showConfirmDialog);
   const flow = useFlowStore((s) => (viewingFlowId ? s.flows[viewingFlowId] : null));
   const updateFlow = useFlowStore((s) => s.updateFlow);
   const removeFlow = useFlowStore((s) => s.removeFlow);
@@ -132,10 +133,15 @@ export default function FlowDetailView() {
             </Button>
             <button
               onClick={() => {
-                if (window.confirm(`确定删除流程「${flow.title}」？此操作不可撤销。`)) {
-                  removeFlow(viewingFlowId);
-                  closeFlowView();
-                }
+                showConfirmDialog({
+                  title: '删除流程',
+                  message: `确定删除流程「${flow.title}」？该流程下的所有节点和子任务将一并删除，此操作不可撤销。`,
+                  confirmText: '删除',
+                  onConfirm: () => {
+                    removeFlow(viewingFlowId);
+                    closeFlowView();
+                  },
+                });
               }}
               className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all"
               title="删除流程"

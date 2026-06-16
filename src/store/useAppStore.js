@@ -21,6 +21,9 @@ const useAppStore = create((set) => ({
   modalType: null, // 'template' | 'import' | 'nodeDetail' | 'flowInfo'
   modalData: null,
 
+  // 确认对话框
+  confirmDialog: null, // { title, message, confirmText, onConfirm } | null
+
   // 已展开的分支（用于 UI 折叠/展开控制）
   expandedBranches: {},
 
@@ -58,6 +61,12 @@ const useAppStore = create((set) => ({
   // Action: 关闭模态框
   closeModal: () =>
     set({ modalOpen: false, modalType: null, modalData: null }),
+
+  // Action: 显示确认对话框
+  showConfirmDialog: (dialog) => set({ confirmDialog: dialog }),
+
+  // Action: 关闭确认对话框
+  closeConfirmDialog: () => set({ confirmDialog: null }),
 
   // Action: 切换分支展开/折叠
   toggleBranch: (nodeId) =>

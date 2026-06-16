@@ -21,6 +21,7 @@ import Button from '../ui/Button';
 export default function WorkSection() {
   const { flows, addFlow, removeFlow } = useFlowStore();
   const openFlowView = useAppStore((s) => s.openFlowView);
+  const showConfirmDialog = useAppStore((s) => s.showConfirmDialog);
 
   // 过滤出工作区的 flow
   const workFlows = Object.values(flows).filter((f) => f.quadrant === 'work');
@@ -138,9 +139,12 @@ export default function WorkSection() {
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => {
-                          if (window.confirm(`确定删除「${flow.title}」？`)) {
-                            removeFlow(flow.id);
-                          }
+                          showConfirmDialog({
+                            title: '删除流程',
+                            message: `确定删除「${flow.title}」？该流程下的所有节点和子任务将一并删除。`,
+                            confirmText: '删除',
+                            onConfirm: () => removeFlow(flow.id),
+                          });
                         }}
                         className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50
                                    opacity-0 group-hover:opacity-100 transition-all"
