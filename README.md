@@ -9,10 +9,10 @@
 | 项目 | 内容 |
 |------|------|
 | 项目名称 | LifeFlow（长事件进度追踪） |
-| 版本 | v1.0.0 |
+| 版本 | v1.4.0 |
 | 许可 | MIT |
-| 技术栈 | React 19 + Vite 8 + Tailwind CSS 3 + Zustand + Framer Motion |
-| 定位 | 纯前端 SPA，LocalStorage 持久化，零后端依赖 |
+| 技术栈 | React 19 + Vite 8 + Tailwind CSS 3 + Zustand + Framer Motion + Supabase Auth |
+| 定位 | 纯前端 SPA，Supabase Auth 身份认证，LocalStorage 持久化 |
 
 ## 项目结构
 
@@ -23,18 +23,29 @@ lifeflow/
 ├── vite.config.js                    # Vite 构建配置
 ├── tailwind.config.js                # Tailwind 配置（含品牌色）
 ├── postcss.config.js                 # PostCSS 配置
+├── ATOMCODE.md                       # 项目 AI 协作规则
 ├── public/
 │   └── favicon.svg
+├── supabase/
+│   └── profiles.sql                  # Supabase profiles 表 DDL + RLS
 ├── src/
 │   ├── main.jsx                      # React 挂载入口
-│   ├── App.jsx                       # 应用根组件
+│   ├── App.jsx                       # 应用根组件（AuthGuard 包裹）
 │   ├── index.css                     # Tailwind 指令 + 全局样式
 │   │
+│   ├── lib/
+│   │   └── supabase.js               # Supabase 客户端单例
+│   │
 │   ├── store/
-│   │   ├── useFlowStore.js           # 核心数据 Store（流程图/节点/模版）
-│   │   └── useAppStore.js            # UI 状态 Store（Tab/侧边栏/视图导航）
+│   │   ├── useFlowStore.js           # 核心数据 Store（流程图/节点/模版/历史快照）
+│   │   ├── useAppStore.js            # UI 状态 Store（Tab/侧边栏/视图导航）
+│   │   └── useAuthStore.js           # 认证状态 Store（Supabase Auth）
 │   │
 │   ├── components/
+│   │   ├── auth/
+│   │   │   ├── AuthGuard.jsx         # 路由守卫（未登录跳转登录页）
+│   │   │   └── LoginPage.jsx         # 登录/注册页面
+│   │   │
 │   │   ├── dashboard/
 │   │   │   ├── Dashboard.jsx         # 四象限仪表盘容器
 │   │   │   ├── TabNav.jsx            # 工作|学习|生活|兴趣 Tab
@@ -43,9 +54,11 @@ lifeflow/
 │   │   │
 │   │   ├── flow/
 │   │   │   ├── FlowChart.jsx         # 流程图引擎（递归渲染 + 拖拽排序）
+│   │   │   ├── FishboneView.jsx      # 鱼骨图预览（SVG 渲染）
 │   │   │   ├── FlowDetailView.jsx    # 流程图详情全屏视图
 │   │   │   ├── FlowControls.jsx      # 流程图操作栏
 │   │   │   ├── FlowInfoModal.jsx     # 流程简介/备注编辑弹窗
+│   │   │   ├── BackupModal.jsx       # 备份与恢复面板
 │   │   │   ├── NodeCard.jsx          # 节点卡片（拖拽、状态、快捷操作）
 │   │   │   ├── NodeDetail.jsx        # 节点详情侧边栏编辑器
 │   │   │   ├── SubFlowList.jsx       # 子分支列表（递归组件）
@@ -57,18 +70,20 @@ lifeflow/
 │   │   │   └── ImportDialog.jsx      # 批量导入对话框
 │   │   │
 │   │   ├── layout/
-│   │   │   ├── Header.jsx            # 顶部导航栏
+│   │   │   ├── Header.jsx            # 顶部导航栏（含用户菜单）
 │   │   │   └── DataInitializer.jsx   # 预设数据初始化
 │   │   │
 │   │   └── ui/
 │   │       ├── Button.jsx            # 统一按钮组件
 │   │       ├── IconToggle.jsx        # 状态切换图标（带动画）
-│   │       └── Modal.jsx             # 通用模态弹窗
+│   │       ├── Modal.jsx             # 通用模态弹窗
+│   │       └── ConfirmDialog.jsx     # 确认对话框
 │   │
 │   └── utils/
 │       ├── id.js                     # nanoid ID 生成
 │       ├── defaultTemplates.js       # 4 套预设模版数据
 │       └── backup.js                 # JSON 导入/导出工具
+└── .env.local                        # Supabase 认证配置（不提交）
 ```
 
 ## 项目解决的问题
@@ -95,6 +110,7 @@ lifeflow/
 | Lucide React | 图标库（线条风格统一） |
 | @dnd-kit (core + sortable) | 拖拽排序 |
 | nanoid | 唯一 ID 生成 |
+| @supabase/supabase-js | Supabase Auth 身份认证 |
 
 ### 架构设计
 
@@ -174,7 +190,10 @@ npm run preview
 | 版本 | 内容 |
 |------|------|
 | v1.0.0 | 核心功能：四象限仪表盘 + 流程图引擎 + 节点 CRUD + 拖拽排序 + 预设模版 + JSON 备份 |
-| v1.1.0（规划） | 独立流程详情视图 + 可编辑流程标题 + 流程简介/备注弹窗 |
+| v1.1.0 | 现代化 favicon 图标 + SEO meta 信息 |
+| v1.2.0 | 历史备份系统（快照/撤销/重做/版本回滚）+ 鱼骨图预览模式（SVG 坐标布局算法） |
+| v1.3.0 | Authing 身份认证集成（useAuthStore / AuthGuard / 登录页 / 用户菜单） |
+| v1.4.0 | 迁移至 Supabase Auth（邮箱注册/登录/邮件验证 / profiles 表 RLS） |
 
 ## License
 
