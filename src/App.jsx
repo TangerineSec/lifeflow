@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import Header from './components/layout/Header';
 import Dashboard from './components/dashboard/Dashboard';
 import NodeDetail from './components/flow/NodeDetail';
@@ -8,6 +9,8 @@ import BackupModal from './components/flow/BackupModal';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import AuthGuard from './components/auth/AuthGuard';
 import useAppStore from './store/useAppStore';
+import useFlowStore from './store/useFlowStore';
+import useAuthStore from './store/useAuthStore';
 
 /**
  * LifeFlow 主应用组件
@@ -16,6 +19,28 @@ import useAppStore from './store/useAppStore';
 function AppContent() {
   const confirmDialog = useAppStore((s) => s.confirmDialog);
   const closeConfirmDialog = useAppStore((s) => s.closeConfirmDialog);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const initialized = useRef(false);
+
+  // 登录后触发云端数据同步
+  useEffect(() => {
+    if (isAuthenticated && !initialized.current) {
+      initialized.current = true;
+      useFlowStore.getState().loadFromCloud();
+    }
+  }, [isAuthenticated]);
+
+  // 监听数据变更，自动推送到云端
+  useEffect(() => {
+    const unsub = useFlowStore.subscribe((state, prevState) => {
+      // 排除首次加载和快照变更
+      if (state.flows === prevState.flows && state.nodes === prevState.nodes) return;
+      if (Object.keys(prevState.flows).length === 0 && Object.keys(state.flows).length > 0) return;
+
+      state._triggerSync();
+    });
+    return unsub;
+  }, []);
 
   return (
     <DataInitializer>

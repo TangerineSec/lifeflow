@@ -6,30 +6,16 @@ import { supabase, getSession, onAuthStateChange } from '../lib/supabase';
  * useAuthStore — 身份认证状态管理（Supabase Auth）
  * =========================================================
  *
- * 使用 Supabase Auth 管理用户登录状态。
+ * 管理用户登录状态、Token、用户信息，并提供登录/登出操作。
+ *
+ * 扩展：数据同步状态
+ *   - syncStatus: 'idle' | 'syncing' | 'synced' | 'error'
+ *   - 由 sync.js 在推送前后更新
  *
  * Supabase Auth 特性：
  * - Session 自动持久化到 localStorage（无需手动管理 Token）
  * - Token 到期自动刷新（onAuthStateChange 事件驱动）
  * - 初始化时调用 getSession() 恢复登录态
- *
- * 状态机：
- *   ┌──────────┐  登录/注册    ┌──────────┐
- *   │ 未登录    │ ──────────>  │ 已登录    │
- *   │ (null)   │ <──────────  │ (Session)│
- *   └──────────┘  登出/过期   └──────────┘
- *
- * 初始化流程：
- *   1. App 启动 → AuthGuard 调用 initialize()
- *   2. getSession() 检查 Supabase 持久化的 session
- *   3. 有 session → isAuthenticated = true，恢复 user
- *   4. 无 session → isAuthenticated = false，显示登录页
- *
- * Session 对象结构：
- *   {
- *     access_token, refresh_token,
- *     user: { id, email, user_metadata, app_metadata, ... }
- *   }
  */
 
 const useAuthStore = create((set, get) => ({
@@ -47,12 +33,16 @@ const useAuthStore = create((set, get) => ({
   /** 是否正在初始化（应用启动时加载 session） */
   isInitializing: true,
 
+  /** 数据同步状态 */
+  syncStatus: 'idle', // 'idle' | 'syncing' | 'synced' | 'error'
+
+  /** 最近一次同步成功的时间戳 */
+  lastSyncedAt: null,
+
   // ===== Action: 初始化 =====
 
   /**
    * 应用启动时调用：恢复 Supabase 持久化的 session
-   * Supabase 会自动将 session 写入 localStorage，
-   * getSession() 读取已保存的 session 并判断有效性。
    */
   initialize: async () => {
     try {
@@ -85,15 +75,23 @@ const useAuthStore = create((set, get) => ({
       });
     }
 
-    // 注册认证状态监听器（处理 Token 刷新、登出等事件）
+    // 注册认证状态监听器
     onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         set({ session, user: session?.user ?? null, isAuthenticated: !!session });
       } else if (event === 'SIGNED_OUT') {
-        set({ session: null, user: null, isAuthenticated: false });
+        set({ session: null, user: null, isAuthenticated: false, syncStatus: 'idle', lastSyncedAt: null });
       }
     });
   },
+
+  // ===== Action: 同步状态 =====
+
+  /** 设置数据同步状态 */
+  setSyncStatus: (status) => set({ syncStatus: status }),
+
+  /** 设置同步完成时间 */
+  setLastSyncedAt: (time) => set({ lastSyncedAt: time }),
 
   // ===== Action: 注册 =====
 

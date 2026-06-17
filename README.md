@@ -27,19 +27,23 @@ lifeflow/
 ├── public/
 │   └── favicon.svg
 ├── supabase/
-│   └── profiles.sql                  # Supabase profiles 表 DDL + RLS
+│   ├── profiles.sql                  # profiles 表 DDL + RLS
+│   └── user_data.sql                 # user_data 表 DDL + RLS（云端同步）
+├── scripts/
+│   └── create-tables.mjs             # 通过 Management API 建表脚本
 ├── src/
 │   ├── main.jsx                      # React 挂载入口
-│   ├── App.jsx                       # 应用根组件（AuthGuard 包裹）
+│   ├── App.jsx                       # 应用根组件（含数据同步订阅）
 │   ├── index.css                     # Tailwind 指令 + 全局样式
 │   │
 │   ├── lib/
-│   │   └── supabase.js               # Supabase 客户端单例
+│   │   ├── supabase.js               # Supabase 客户端单例
+│   │   └── sync.js                   # 云端同步服务（pull/push/debounce）
 │   │
 │   ├── store/
-│   │   ├── useFlowStore.js           # 核心数据 Store（流程图/节点/模版/历史快照）
+│   │   ├── useFlowStore.js           # 核心数据 Store（流程图/节点/模版/历史快照/云端同步）
 │   │   ├── useAppStore.js            # UI 状态 Store（Tab/侧边栏/视图导航）
-│   │   └── useAuthStore.js           # 认证状态 Store（Supabase Auth）
+│   │   └── useAuthStore.js           # 认证状态 Store（含同步状态 syncStatus）
 │   │
 │   ├── components/
 │   │   ├── auth/
@@ -70,7 +74,7 @@ lifeflow/
 │   │   │   └── ImportDialog.jsx      # 批量导入对话框
 │   │   │
 │   │   ├── layout/
-│   │   │   ├── Header.jsx            # 顶部导航栏（含用户菜单）
+│   │   │   ├── Header.jsx            # 顶部导航栏（含用户菜单 + 同步状态）
 │   │   │   └── DataInitializer.jsx   # 预设数据初始化
 │   │   │
 │   │   └── ui/
@@ -194,6 +198,8 @@ npm run preview
 | v1.2.0 | 历史备份系统（快照/撤销/重做/版本回滚）+ 鱼骨图预览模式（SVG 坐标布局算法） |
 | v1.3.0 | Authing 身份认证集成（useAuthStore / AuthGuard / 登录页 / 用户菜单） |
 | v1.4.0 | 迁移至 Supabase Auth（邮箱注册/登录/邮件验证 / profiles 表 RLS） |
+| v1.5.0 | 上线部署 + GitHub Actions CI/CD（atomcode.find0day.cn） |
+| v1.6.0 | 云端数据同步（user_data 表 / 登录自动拉取 / 变更自动推送 / 同步状态指示） |
 
 ## License
 

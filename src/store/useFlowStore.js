@@ -5,6 +5,8 @@ import {
   DEFAULT_TEMPLATES,
   flattenTemplateNodes,
 } from '../utils/defaultTemplates';
+import { pullFromCloud, debouncedPush, cancelPendingPush } from '../lib/sync';
+import useAuthStore from './useAuthStore';
 
 /**
  * =========================================================
@@ -535,6 +537,63 @@ const useFlowStore = create(
       },
 
       // ===== 历史快照操作 =====
+
+      /**
+       * 从云端加载数据（登录后调用）
+       * 如果云端有数据且比本地新，则覆盖本地状态
+       */
+      loadFromCloud: async () => {
+        const authUser = useAuthStore.getState().user;
+        if (!authUser) return;
+
+        const setSyncStatus = useAuthStore.getState().setSyncStatus;
+        setSyncStatus('syncing');
+
+        try {
+          const cloudData = await pullFromCloud(authUser.id);
+
+          if (cloudData) {
+            // 云端有数据 → 覆盖本地
+            set({
+              flows: cloudData.flows,
+              nodes: cloudData.nodes,
+              // 只同步用户自建模版，预设模版保留本地
+              templates: [
+                ...get().templates.filter((t) => t.id.startsWith('preset-')),
+                ...cloudData.templates,
+              ],
+            });
+
+            // 更新快照索引（云端数据作为新的起点）
+            get().saveSnapshot('从云端同步');
+          } else {
+            // 云端无数据 → 将本地数据推送到云端（首次同步）
+            get()._triggerSync();
+          }
+
+          setSyncStatus('synced');
+          useAuthStore.getState().setLastSyncedAt(Date.now());
+        } catch (err) {
+          console.error('[Sync] 云端同步失败:', err);
+          setSyncStatus('error');
+        }
+      },
+
+      /**
+       * 触发数据同步到云端（防抖）
+       * 在每次数据变更后自动调用
+       */
+      _triggerSync: () => {
+        const authUser = useAuthStore.getState().user;
+        if (!authUser) return;
+
+        useAuthStore.getState().setSyncStatus('syncing');
+        debouncedPush(authUser.id, () => ({
+          flows: get().flows,
+          nodes: get().nodes,
+          templates: get().templates.filter((t) => !t.id.startsWith('preset-')),
+        }));
+      },
 
       /**
        * 保存当前状态快照（在关键操作变更前调用）

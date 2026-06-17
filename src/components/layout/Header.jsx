@@ -8,6 +8,9 @@ import {
   LogOut,
   User,
   ChevronDown,
+  Cloud,
+  CloudOff,
+  Loader2,
 } from 'lucide-react';
 import Button from '../ui/Button';
 import useFlowStore from '../../store/useFlowStore';
@@ -21,7 +24,7 @@ import useAuthStore from '../../store/useAuthStore';
 export default function Header() {
   const { flows, nodes, templates } = useFlowStore();
   const openModal = useAppStore((s) => s.openModal);
-  const { user, signOut } = useAuthStore();
+  const { user, signOut, syncStatus } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -118,6 +121,34 @@ export default function Header() {
           >
             模版库
           </Button>
+
+          {/* 云端同步状态 */}
+          <div className="flex items-center gap-1.5 px-2 text-[10px] text-gray-400">
+            {syncStatus === 'syncing' && (
+              <span className="flex items-center gap-1 text-amber-500">
+                <Loader2 size={12} className="animate-spin" />
+                同步中…
+              </span>
+            )}
+            {syncStatus === 'synced' && (
+              <span className="flex items-center gap-1 text-emerald-500">
+                <Cloud size={12} />
+                已同步
+              </span>
+            )}
+            {syncStatus === 'error' && (
+              <span className="flex items-center gap-1 text-red-400">
+                <CloudOff size={12} />
+                同步失败
+              </span>
+            )}
+            {syncStatus === 'idle' && (
+              <span className="flex items-center gap-1">
+                <Cloud size={12} className="text-gray-300" />
+                就绪
+              </span>
+            )}
+          </div>
 
           {/* 分割线 */}
           <div className="h-5 w-px bg-gray-200 mx-1" />
