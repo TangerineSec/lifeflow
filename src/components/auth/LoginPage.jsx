@@ -1,99 +1,162 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, User, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import {
+  LogIn,
+  UserPlus,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  CheckCircle,
+} from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 
 /**
  * =========================================================
- * LoginPage — 登录页面
+ * LoginPage — 登录 / 注册页面（Supabase Auth）
  * =========================================================
  *
- * 提供基于邮箱或用户名的密码登录表单。
- * 由于 @authing/react-ui-components 与 React 19 不兼容，
- * 此组件使用 authing-js-sdk 直接调用登录 API，
- * 并自建与 LifeFlow 设计语言一致的 Tailwind CSS 表单。
+ * 支持两种模式：
+ * 1. 登录（Sign In）— 邮箱 + 密码
+ * 2. 注册（Sign Up）— 邮箱 + 密码
  *
- * 支持两种登录方式（通过 toggle 切换）：
- * 1. 邮箱 + 密码  (loginByEmail)
- * 2. 用户名 + 密码 (loginByUsername)
+ * 注册成功后如果 Supabase 开启了邮箱确认，
+ * 页面会提示用户去邮箱验证，并在验证后自动登录。
  *
- * 错误处理：
- * - 显示 Authing 返回的中文错误信息（如"用户不存在"、"密码错误"）
- * - 网络错误提示连接失败
- * - 登录中状态禁用提交按钮
+ * Supabase Auth 的错误信息已包含中文翻译，
+ * 例如：Invalid login credentials → 邮箱或密码错误
  */
 
 export default function LoginPage() {
-  // ── 登录方式切换 ──
-  const [loginMode, setLoginMode] = useState('email'); // 'email' | 'username'
+  // ── 模式切换: 'signin' | 'signup'
+  const [mode, setMode] = useState('signin');
 
   // ── 表单字段 ──
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // ── UI 状态 ──
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [registered, setRegistered] = useState(false); // 注册成功提示
 
   // ── Store actions ──
-  const loginWithEmail = useAuthStore((s) => s.loginWithEmail);
-  const loginWithUsername = useAuthStore((s) => s.loginWithUsername);
+  const signIn = useAuthStore((s) => s.signIn);
+  const signUp = useAuthStore((s) => s.signUp);
 
-  // ── 登录提交 ──
+  // ── 提交表单 ──
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
       setError(null);
+      setRegistered(false);
 
-      // 基本表单校验
-      if (loginMode === 'email') {
-        if (!email.trim()) {
-          setError('请输入邮箱地址');
-          return;
-        }
-        if (!/\S+@\S+\.\S+/.test(email)) {
-          setError('邮箱格式不正确');
-          return;
-        }
-      } else {
-        if (!username.trim()) {
-          setError('请输入用户名');
-          return;
-        }
+      // 邮箱校验
+      if (!email.trim()) {
+        setError('请输入邮箱地址');
+        return;
+      }
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        setError('邮箱格式不正确');
+        return;
       }
 
+      // 密码校验
       if (!password) {
         setError('请输入密码');
         return;
       }
+      if (password.length < 6) {
+        setError('密码长度不少于 6 位');
+        return;
+      }
+
+      // 注册模式：确认密码
+      if (mode === 'signup') {
+        if (password !== confirmPassword) {
+          setError('两次输入的密码不一致');
+          return;
+        }
+      }
 
       setIsLoading(true);
       try {
-        if (loginMode === 'email') {
-          await loginWithEmail(email.trim(), password);
+        if (mode === 'signin') {
+          // ── 登录 ──
+          await signIn(email.trim(), password);
+          // 登录成功后 AuthGuard 自动切换回主应用
         } else {
-          await loginWithUsername(username.trim(), password);
+          // ── 注册 ──
+          await signUp(email.trim(), password);
+          // 如果关闭了邮箱确认，自动跳转主应用
+          // 如果开启了邮箱确认，显示提示
+          setRegistered(true);
         }
-        // 登录成功后，AuthGuard 自动切换回主应用
       } catch (err) {
-        // 提取 Authing 的错误信息
-        const message =
-          err?.message || err?.data?.message || '登录失败，请检查账号密码';
-        setError(message);
+        // 处理 Supabase Auth 错误信息
+        const msg = err?.message || '';
+        // 常见错误的中文映射
+        const errorMap = {
+          'Invalid login credentials': '邮箱或密码错误',
+          'Email not confirmed': '邮箱尚未验证，请先查收验证邮件',
+          'User already registered': '该邮箱已注册，请直接登录',
+          'Password should be at least 6 characters': '密码长度不少于 6 位',
+          'rate_limit': '操作过于频繁，请稍后再试',
+        };
+        const mapped =
+          Object.entries(errorMap).find(([key]) =>
+            msg.toLowerCase().includes(key.toLowerCase())
+          )?.[1] || msg || '操作失败，请稍后重试';
+        setError(mapped);
       } finally {
         setIsLoading(false);
       }
     },
-    [loginMode, email, username, password, loginWithEmail, loginWithUsername]
+    [mode, email, password, confirmPassword, signIn, signUp]
   );
 
-  // ── 切换登录方式 ──
-  const toggleMode = useCallback(() => {
-    setLoginMode((prev) => (prev === 'email' ? 'username' : 'email'));
+  // ── 切换模式 ──
+  const switchMode = useCallback((newMode) => {
+    setMode(newMode);
     setError(null);
+    setRegistered(false);
   }, []);
+
+  // ── 注册成功提示 ──
+  if (registered) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-sm"
+        >
+          <div className="card p-8 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle size={28} className="text-emerald-500" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              注册成功！
+            </h2>
+            <p className="text-sm text-gray-500 mb-6">
+              我们已经向 <strong className="text-gray-700">{email}</strong> 发送了一封验证邮件。
+              <br />
+              请查收邮件并点击验证链接完成注册。
+            </p>
+            <button
+              onClick={() => switchMode('signin')}
+              className="text-sm text-brand-500 hover:text-brand-600 font-medium"
+            >
+              返回登录
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -145,91 +208,60 @@ export default function LoginPage() {
           <p className="text-sm text-gray-400 mt-1">长事件进度追踪系统</p>
         </div>
 
-        {/* ── 登录卡片 ── */}
+        {/* ── 登录/注册卡片 ── */}
         <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 登录方式切换 */}
+            {/* 模式切换：登录 / 注册 */}
             <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
               <button
                 type="button"
-                onClick={() => {
-                  setLoginMode('email');
-                  setError(null);
-                }}
+                onClick={() => switchMode('signin')}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  loginMode === 'email'
+                  mode === 'signin'
                     ? 'bg-white text-brand-600 shadow-sm'
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <Mail size={13} />
-                邮箱登录
+                <LogIn size={13} />
+                登录
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setLoginMode('username');
-                  setError(null);
-                }}
+                onClick={() => switchMode('signup')}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  loginMode === 'username'
+                  mode === 'signup'
                     ? 'bg-white text-brand-600 shadow-sm'
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
-                <User size={13} />
-                用户名登录
+                <UserPlus size={13} />
+                注册
               </button>
             </div>
 
-            {/* 输入框：邮箱 / 用户名 */}
-            {loginMode === 'email' ? (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                  邮箱地址
-                </label>
-                <div className="relative">
-                  <Mail
-                    size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"
-                  />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    autoFocus
-                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 rounded-xl border border-gray-200
-                               placeholder:text-gray-300
-                               focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300
-                               transition-all"
-                  />
-                </div>
+            {/* 邮箱 */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                邮箱地址
+              </label>
+              <div className="relative">
+                <Mail
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"
+                />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  autoFocus
+                  className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 rounded-xl border border-gray-200
+                             placeholder:text-gray-300
+                             focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300
+                             transition-all"
+                />
               </div>
-            ) : (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">
-                  用户名
-                </label>
-                <div className="relative">
-                  <User
-                    size={15}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"
-                  />
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="请输入用户名"
-                    autoFocus
-                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 rounded-xl border border-gray-200
-                               placeholder:text-gray-300
-                               focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300
-                               transition-all"
-                  />
-                </div>
-              </div>
-            )}
+            </div>
 
             {/* 密码 */}
             <div>
@@ -245,7 +277,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="请输入密码"
+                  placeholder={mode === 'signup' ? '至少 6 位密码' : '请输入密码'}
                   className="w-full pl-9 pr-10 py-2.5 text-sm bg-gray-50 rounded-xl border border-gray-200
                              placeholder:text-gray-300
                              focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300
@@ -260,6 +292,31 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* 确认密码（仅注册模式） */}
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                  确认密码
+                </label>
+                <div className="relative">
+                  <Lock
+                    size={15}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"
+                  />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="再次输入密码"
+                    className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 rounded-xl border border-gray-200
+                               placeholder:text-gray-300
+                               focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300
+                               transition-all"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* 错误信息 */}
             {error && (
@@ -305,12 +362,16 @@ export default function LoginPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                     />
                   </svg>
-                  登录中…
+                  {mode === 'signin' ? '登录中…' : '注册中…'}
                 </>
               ) : (
                 <>
-                  <LogIn size={16} />
-                  登录
+                  {mode === 'signin' ? (
+                    <LogIn size={16} />
+                  ) : (
+                    <UserPlus size={16} />
+                  )}
+                  {mode === 'signin' ? '登录' : '注册'}
                 </>
               )}
             </button>
@@ -318,7 +379,27 @@ export default function LoginPage() {
 
           {/* 底部提示 */}
           <p className="mt-4 text-xs text-center text-gray-400">
-            由 Authing 身份认证服务提供支持
+            {mode === 'signin' ? (
+              <>
+                还没有账号？{' '}
+                <button
+                  onClick={() => switchMode('signup')}
+                  className="text-brand-500 hover:text-brand-600 font-medium"
+                >
+                  立即注册
+                </button>
+              </>
+            ) : (
+              <>
+                已有账号？{' '}
+                <button
+                  onClick={() => switchMode('signin')}
+                  className="text-brand-500 hover:text-brand-600 font-medium"
+                >
+                  返回登录
+                </button>
+              </>
+            )}
           </p>
         </div>
       </motion.div>

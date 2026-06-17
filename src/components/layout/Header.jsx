@@ -21,7 +21,7 @@ import useAuthStore from '../../store/useAuthStore';
 export default function Header() {
   const { flows, nodes, templates } = useFlowStore();
   const openModal = useAppStore((s) => s.openModal);
-  const { user, logout } = useAuthStore();
+  const { user, signOut } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -60,12 +60,13 @@ export default function Header() {
 
   const handleLogout = useCallback(async () => {
     setMenuOpen(false);
-    await logout();
-  }, [logout]);
+    await signOut();
+  }, [signOut]);
 
-  // 用户头像首字母
-  const avatarLetter = user?.nickname?.[0] || user?.username?.[0] || user?.email?.[0] || '?';
-  const displayName = user?.nickname || user?.username || user?.email || '用户';
+  // 用户头像首字母（Supabase Auth: user.user_metadata 存储自定义字段）
+  const userMeta = user?.user_metadata || {};
+  const displayName = userMeta?.nickname || userMeta?.username || userMeta?.name || user?.email?.split('@')[0] || '用户';
+  const avatarLetter = displayName[0].toUpperCase();
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-100">

@@ -13,7 +13,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "authing-js-sdk": "^4.23.55",
+    "@supabase/supabase-js": "^2.108.2",
     "framer-motion": "^12.6.0",
     "lucide-react": "^0.486.0",
     "nanoid": "^3.3.11",
