@@ -1,14 +1,19 @@
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Download,
   Upload,
   LayoutDashboard,
   FileJson,
   History,
+  LogOut,
+  User,
+  ChevronDown,
 } from 'lucide-react';
 import Button from '../ui/Button';
 import useFlowStore from '../../store/useFlowStore';
 import { exportBackup, importBackup } from '../../utils/backup';
 import useAppStore from '../../store/useAppStore';
+import useAuthStore from '../../store/useAuthStore';
 
 /**
  * 顶部导航栏
@@ -16,6 +21,21 @@ import useAppStore from '../../store/useAppStore';
 export default function Header() {
   const { flows, nodes, templates } = useFlowStore();
   const openModal = useAppStore((s) => s.openModal);
+  const { user, logout } = useAuthStore();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // 点击外部关闭用户菜单
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   const handleExport = () => {
     exportBackup({ flows, nodes, templates }, `lifeflow-${Date.now()}.json`);
@@ -38,6 +58,15 @@ export default function Header() {
     }
   };
 
+  const handleLogout = useCallback(async () => {
+    setMenuOpen(false);
+    await logout();
+  }, [logout]);
+
+  // 用户头像首字母
+  const avatarLetter = user?.nickname?.[0] || user?.username?.[0] || user?.email?.[0] || '?';
+  const displayName = user?.nickname || user?.username || user?.email || '用户';
+
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
@@ -54,7 +83,7 @@ export default function Header() {
           </span>
         </div>
 
-        {/* 右侧：操作按钮 */}
+        {/* 右侧：操作按钮 + 用户信息 */}
         <div className="flex items-center gap-1.5">
           <Button
             variant="ghost"
@@ -88,6 +117,52 @@ export default function Header() {
           >
             模版库
           </Button>
+
+          {/* 分割线 */}
+          <div className="h-5 w-px bg-gray-200 mx-1" />
+
+          {/* 用户菜单 */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {/* 用户头像 */}
+              <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold">
+                {avatarLetter}
+              </div>
+              <span className="hidden sm:inline text-xs text-gray-600 max-w-[80px] truncate">
+                {displayName}
+              </span>
+              <ChevronDown
+                size={12}
+                className={`text-gray-300 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {/* 下拉菜单 */}
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                <div className="px-3 py-2 border-b border-gray-50">
+                  <div className="text-xs font-medium text-gray-900 truncate">
+                    {displayName}
+                  </div>
+                  {user?.email && (
+                    <div className="text-[10px] text-gray-400 truncate mt-0.5">
+                      {user.email}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:bg-red-50 hover:text-red-500 transition-colors"
+                >
+                  <LogOut size={13} />
+                  退出登录
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

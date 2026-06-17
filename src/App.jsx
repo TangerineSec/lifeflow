@@ -6,12 +6,14 @@ import DataInitializer from './components/layout/DataInitializer';
 import TemplateManager from './components/template/TemplateManager';
 import BackupModal from './components/flow/BackupModal';
 import ConfirmDialog from './components/ui/ConfirmDialog';
+import AuthGuard from './components/auth/AuthGuard';
 import useAppStore from './store/useAppStore';
 
 /**
  * LifeFlow 主应用组件
+ * 由 AuthGuard 包裹，未登录时自动显示登录页
  */
-function App() {
+function AppContent() {
   const confirmDialog = useAppStore((s) => s.confirmDialog);
   const closeConfirmDialog = useAppStore((s) => s.closeConfirmDialog);
 
@@ -41,6 +43,17 @@ function App() {
         )}
       </div>
     </DataInitializer>
+  );
+}
+
+/**
+ * App 入口：AuthGuard 路由守卫包裹主内容
+ */
+function App() {
+  return (
+    <AuthGuard>
+      <AppContent />
+    </AuthGuard>
   );
 }
 
