@@ -1,0 +1,57 @@
+# ============================================================
+# LifeFlow 自动部署 Workflow
+# ============================================================
+# 触发条件：推送 main 分支
+# 流程：构建 → rsync 上传到服务器 → Nginx 热重载
+#
+# GitHub Secrets 要求（在仓库 Settings → Secrets and variables → Actions 中设置）：
+#   SERVER_HOST       — 服务器 IP（124.220.62.162）
+#   SERVER_USER       — SSH 用户名（root）
+#   SERVER_PATH       — 部署路径（/var/www/lifeflow）
+#   SSH_PRIVATE_KEY   — 服务器 SSH 私钥
+#   SUPABASE_URL      — Supabase 项目 URL
+#   SUPABASE_ANON_KEY — Supabase Anon Key
+# ============================================================
+
+name: Deploy LifeFlow
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 📦 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: 🔧 安装依赖
+        run: npm ci
+
+      - name: 🏗️ 构建生产版本
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: 🚀 部署到服务器
+        uses: easingthemes/ssh-deploy@v5
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+          REMOTE_USER: ${{ secrets.SERVER_USER }}
+          TARGET: ${{ secrets.SERVER_PATH }}
+          SOURCE: dist/
+          ARGS: -avz --delete
+          SCRIPT_BEFORE: |
+            mkdir -p ${{ secrets.SERVER_PATH }}
+          SCRIPT_AFTER: |
+            nginx -s reload
