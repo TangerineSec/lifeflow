@@ -4,6 +4,7 @@ import NodeDetail from './components/flow/NodeDetail';
 import FlowInfoModal from './components/flow/FlowInfoModal';
 import DataInitializer from './components/layout/DataInitializer';
 import TemplateManager from './components/template/TemplateManager';
+import BackupModal from './components/flow/BackupModal';
 import ConfirmDialog from './components/ui/ConfirmDialog';
 import useAppStore from './store/useAppStore';
 
@@ -22,6 +23,7 @@ function App() {
         <NodeDetail />
         <FlowInfoModal />
         <TemplateManager />
+        <BackupModal />
 
         {/* 全局确认对话框 */}
         {confirmDialog && (

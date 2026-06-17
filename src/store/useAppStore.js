@@ -11,6 +11,9 @@ const useAppStore = create((set) => ({
   // 流程详情视图（进入流程图详情的全屏视图）
   viewingFlowId: null,
 
+  // 视图模式（'linear' | 'fishbone'）
+  viewMode: 'linear',
+
   // 侧边栏（节点详情）
   sidebarOpen: false,
   activeNodeId: null,
@@ -38,6 +41,9 @@ const useAppStore = create((set) => ({
 
   // Action: 退出流程详情视图
   closeFlowView: () => set({ viewingFlowId: null }),
+
+  // Action: 设置视图模式
+  setViewMode: (mode) => set({ viewMode: mode }),
 
   // Action: 打开侧边栏编辑节点
   openSidebar: (nodeId, flowId) =>

@@ -3,6 +3,7 @@ import {
   Upload,
   LayoutDashboard,
   FileJson,
+  History,
 } from 'lucide-react';
 import Button from '../ui/Button';
 import useFlowStore from '../../store/useFlowStore';
@@ -70,6 +71,14 @@ export default function Header() {
             onClick={handleExport}
           >
             导出
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={History}
+            onClick={() => openModal('backup')}
+          >
+            备份
           </Button>
           <Button
             variant="primary"

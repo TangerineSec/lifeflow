@@ -9,10 +9,13 @@ import {
   FileText,
   MessageSquareText,
   Trash2,
+  GitFork,
+  Workflow,
 } from 'lucide-react';
 import useFlowStore from '../../store/useFlowStore';
 import useAppStore from '../../store/useAppStore';
 import FlowChart from './FlowChart';
+import FishboneView from './FishboneView';
 import Button from '../ui/Button';
 
 /**
@@ -28,6 +31,8 @@ export default function FlowDetailView() {
   const closeFlowView = useAppStore((s) => s.closeFlowView);
   const openModal = useAppStore((s) => s.openModal);
   const showConfirmDialog = useAppStore((s) => s.showConfirmDialog);
+  const viewMode = useAppStore((s) => s.viewMode);
+  const setViewMode = useAppStore((s) => s.setViewMode);
   const flow = useFlowStore((s) => (viewingFlowId ? s.flows[viewingFlowId] : null));
   const updateFlow = useFlowStore((s) => s.updateFlow);
   const removeFlow = useFlowStore((s) => s.removeFlow);
@@ -123,6 +128,34 @@ export default function FlowDetailView() {
 
           {/* 右侧操作 */}
           <div className="flex items-center gap-1">
+            {/* 视图切换：线性流程图 / 鱼骨图 */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5 mr-2">
+              <button
+                onClick={() => setViewMode('linear')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  viewMode === 'linear'
+                    ? 'bg-white text-brand-600 shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+                title="线性流程图"
+              >
+                <GitFork size={13} />
+                <span className="hidden sm:inline">线性</span>
+              </button>
+              <button
+                onClick={() => setViewMode('fishbone')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  viewMode === 'fishbone'
+                    ? 'bg-white text-brand-600 shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+                title="鱼骨图"
+              >
+                <Workflow size={13} />
+                <span className="hidden sm:inline">鱼骨</span>
+              </button>
+            </div>
+
             <Button
               variant="ghost"
               size="sm"
@@ -186,9 +219,13 @@ export default function FlowDetailView() {
           </div>
         )}
 
-        {/* 流程图 */}
+        {/* 流程图 / 鱼骨图（根据 viewMode 切换） */}
         <div className="card p-4 sm:p-6">
-          <FlowChart flowId={viewingFlowId} />
+          {viewMode === 'fishbone' ? (
+            <FishboneView flowId={viewingFlowId} />
+          ) : (
+            <FlowChart flowId={viewingFlowId} />
+          )}
         </div>
       </div>
     </motion.div>
