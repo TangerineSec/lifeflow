@@ -173,6 +173,26 @@ const useAuthStore = create((set, get) => ({
       isAuthenticated: false,
     });
   },
+
+  // ===== Action: GitHub OAuth 登录 =====
+
+  /**
+   * 使用 GitHub OAuth 登录
+   * Supabase 会重定向到 GitHub 授权页，授权后回调到 redirectTo 地址。
+   * 回调时 Supabase 自动从 URL hash 中解析 session，
+   * onAuthStateChange('SIGNED_IN') 更新 store。
+   */
+  signInWithGithub: async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (error) throw error;
+    // 成功后浏览器会跳转到 GitHub，所以无需更新 store
+  },
 }));
 
 export default useAuthStore;
