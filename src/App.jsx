@@ -7,6 +7,7 @@ import DataInitializer from './components/layout/DataInitializer';
 import TemplateManager from './components/template/TemplateManager';
 import BackupModal from './components/flow/BackupModal';
 import ConfirmDialog from './components/ui/ConfirmDialog';
+import ProfileModal from './components/auth/ProfileModal';
 import AuthGuard from './components/auth/AuthGuard';
 import useAppStore from './store/useAppStore';
 import useFlowStore from './store/useFlowStore';
@@ -19,6 +20,9 @@ import useAuthStore from './store/useAuthStore';
 function AppContent() {
   const confirmDialog = useAppStore((s) => s.confirmDialog);
   const closeConfirmDialog = useAppStore((s) => s.closeConfirmDialog);
+  const modalType = useAppStore((s) => s.modalType);
+  const modalOpen = useAppStore((s) => s.modalOpen);
+  const closeModal = useAppStore((s) => s.closeModal);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const initialized = useRef(false);
 
@@ -51,6 +55,7 @@ function AppContent() {
         <FlowInfoModal />
         <TemplateManager />
         <BackupModal />
+        <ProfileModal open={modalOpen && modalType === 'profile'} onClose={closeModal} />
 
         {/* 全局确认对话框 */}
         {confirmDialog && (

@@ -201,6 +201,7 @@ npm run preview
 | v1.5.0 | 上线部署 + GitHub Actions CI/CD（atomcode.find0day.cn） |
 | v1.6.0 | 云端数据同步（user_data 表 / 登录自动拉取 / 变更自动推送 / 同步状态指示） |
 | v1.7.0 | GitHub OAuth 登录（signInWithOAuth / GitHub 按钮 / OAuth 回调处理） |
+| v1.8.0 | 个人资料认证（profiles 扩展 / VerifiedBadge / ProfileModal / 触发器自动计算） |
 
 ## License
 

@@ -11,12 +11,15 @@ import {
   Cloud,
   CloudOff,
   Loader2,
+  ShieldCheck,
 } from 'lucide-react';
 import Button from '../ui/Button';
+import VerifiedBadge from '../ui/VerifiedBadge';
 import useFlowStore from '../../store/useFlowStore';
 import { exportBackup, importBackup } from '../../utils/backup';
 import useAppStore from '../../store/useAppStore';
 import useAuthStore from '../../store/useAuthStore';
+import { supabase } from '../../lib/supabase';
 
 /**
  * 顶部导航栏
@@ -27,6 +30,28 @@ export default function Header() {
   const { user, signOut, syncStatus } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+
+  // ── 个人资料认证状态 ──
+  const [profile, setProfile] = useState(null); // { is_verified_profile }
+
+  // 加载 profiles 表数据
+  useEffect(() => {
+    if (!user?.id) {
+      setProfile(null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('is_verified_profile, full_name, phone, email')
+        .eq('id', user.id)
+        .single();
+      // PGRST116 = 无记录，忽略即可
+      if (data) setProfile(data);
+    })();
+  }, [user?.id]);
+
+  const isVerified = !!profile?.is_verified_profile;
 
   // 点击外部关闭用户菜单
   useEffect(() => {
@@ -160,12 +185,17 @@ export default function Header() {
               className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
             >
               {/* 用户头像 */}
-              <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold">
+              <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold relative">
                 {avatarLetter}
+                {/* 认证状态小绿点 */}
+                {isVerified && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full" />
+                )}
               </div>
               <span className="hidden sm:inline text-xs text-gray-600 max-w-[80px] truncate">
                 {displayName}
               </span>
+              <VerifiedBadge isVerified={isVerified} size="sm" />
               <ChevronDown
                 size={12}
                 className={`text-gray-300 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
@@ -185,6 +215,19 @@ export default function Header() {
                     </div>
                   )}
                 </div>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    openModal('profile');
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <ShieldCheck size={13} />
+                  个人资料
+                  {isVerified && (
+                    <span className="ml-auto text-[10px] text-emerald-500 font-medium">已认证</span>
+                  )}
+                </button>
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 hover:bg-red-50 hover:text-red-500 transition-colors"
