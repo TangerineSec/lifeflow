@@ -193,6 +193,20 @@ const useAuthStore = create((set, get) => ({
     if (error) throw error;
     // 成功后浏览器会跳转到 GitHub，所以无需更新 store
   },
+
+  // ===== Action: 修改密码 =====
+
+  /**
+   * 修改当前登录用户的密码
+   * @param {string} newPassword - 新密码（Supabase 要求至少 6 位）
+   * @returns {Promise<void>}
+   */
+  updatePassword: async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+  },
 }));
 
 export default useAuthStore;

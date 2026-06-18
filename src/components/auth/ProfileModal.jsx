@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { User, Save, AlertCircle, CheckCircle, KeyRound } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Modal from '../ui/Modal';
 import VerifiedBadge from '../ui/VerifiedBadge';
+import ChangePasswordForm from './ChangePasswordForm';
 import useAuthStore from '../../store/useAuthStore';
 
 /**
@@ -246,6 +247,16 @@ export default function ProfileModal({ open, onClose }) {
             </>
           )}
         </button>
+
+        {/* ── 分割线 ── */}
+        <div className="flex items-center gap-3 pt-2">
+          <div className="flex-1 h-px bg-gray-100" />
+          <KeyRound size={14} className="text-gray-300" />
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
+        {/* ── 修改密码 ── */}
+        <ChangePasswordForm />
       </div>
     </Modal>
   );
